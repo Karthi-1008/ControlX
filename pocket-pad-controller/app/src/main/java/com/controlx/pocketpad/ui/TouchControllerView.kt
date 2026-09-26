@@ -240,52 +240,62 @@ class TouchControllerView @JvmOverloads constructor(
                 val y = event.getY(pointerIndex)
                 pointerTargetMap[pointerId] = getTargetAt(x, y)
             }
-            MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP, MotionEvent.ACTION_CANCEL -> {
+            MotionEvent.ACTION_POINTER_UP -> {
                 pointerTargetMap.remove(pointerId)
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                pointerTargetMap.clear()
             }
         }
 
-        // Process all active pointers
-        for (i in 0 until event.pointerCount) {
-            val pid = event.getPointerId(i)
-            val px = event.getX(i)
-            val py = event.getY(i)
-
-            // Dynamic tracking: allows sliding from center of D-pad or between buttons
-            val target = getTargetAt(px, py)
-            pointerTargetMap[pid] = target
-
-            when (target) {
-                TARGET_DPAD -> {
-                    val dx = px - dpadCenterX
-                    val dy = py - dpadCenterY
-                    val dist = hypot(dx.toDouble(), dy.toDouble()).toFloat()
-                    if (dist > dpadRadius * 0.15f) {
-                        val angle = (Math.toDegrees(atan2(dy.toDouble(), dx.toDouble())) + 360.0) % 360.0
-                        // 8-way directional sector calculation
-                        newHat = when {
-                            angle >= 337.5 || angle < 22.5 -> GamepadHidDescriptor.HAT_RIGHT
-                            angle in 22.5..67.5 -> GamepadHidDescriptor.HAT_DOWN_RIGHT
-                            angle in 67.5..112.5 -> GamepadHidDescriptor.HAT_DOWN
-                            angle in 112.5..157.5 -> GamepadHidDescriptor.HAT_DOWN_LEFT
-                            angle in 157.5..202.5 -> GamepadHidDescriptor.HAT_LEFT
-                            angle in 202.5..247.5 -> GamepadHidDescriptor.HAT_UP_LEFT
-                            angle in 247.5..292.5 -> GamepadHidDescriptor.HAT_UP
-                            angle in 292.5..337.5 -> GamepadHidDescriptor.HAT_UP_RIGHT
-                            else -> GamepadHidDescriptor.HAT_CENTER
-                        }
-
-                        // Analog fallback axis
-                        newX = (dx / dpadRadius * 127f).coerceIn(-127f, 127f).toInt().toByte()
-                        newY = (dy / dpadRadius * 127f).coerceIn(-127f, 127f).toInt().toByte()
-                    }
+        // Process all currently active pointers (if not fully lifted)
+        if (action != MotionEvent.ACTION_UP && action != MotionEvent.ACTION_CANCEL) {
+            for (i in 0 until event.pointerCount) {
+                // If a secondary pointer was just lifted, do not process its position
+                if (action == MotionEvent.ACTION_POINTER_UP && i == pointerIndex) {
+                    continue
                 }
-                TARGET_BTN_A -> newButtons = newButtons or GamepadHidDescriptor.BUTTON_A
-                TARGET_BTN_B -> newButtons = newButtons or GamepadHidDescriptor.BUTTON_B
-                TARGET_BTN_L -> newButtons = newButtons or GamepadHidDescriptor.BUTTON_L1
-                TARGET_BTN_R -> newButtons = newButtons or GamepadHidDescriptor.BUTTON_R1
-                TARGET_SELECT -> newButtons = newButtons or GamepadHidDescriptor.BUTTON_SELECT
-                TARGET_START -> newButtons = newButtons or GamepadHidDescriptor.BUTTON_START
+
+                val pid = event.getPointerId(i)
+                val px = event.getX(i)
+                val py = event.getY(i)
+
+                // Dynamic tracking: allows sliding from center of D-pad or between buttons
+                val target = getTargetAt(px, py)
+                pointerTargetMap[pid] = target
+
+                when (target) {
+                    TARGET_DPAD -> {
+                        val dx = px - dpadCenterX
+                        val dy = py - dpadCenterY
+                        val dist = hypot(dx.toDouble(), dy.toDouble()).toFloat()
+                        if (dist > dpadRadius * 0.15f) {
+                            val angle = (Math.toDegrees(atan2(dy.toDouble(), dx.toDouble())) + 360.0) % 360.0
+                            // 8-way directional sector calculation
+                            newHat = when {
+                                angle >= 337.5 || angle < 22.5 -> GamepadHidDescriptor.HAT_RIGHT
+                                angle in 22.5..67.5 -> GamepadHidDescriptor.HAT_DOWN_RIGHT
+                                angle in 67.5..112.5 -> GamepadHidDescriptor.HAT_DOWN
+                                angle in 112.5..157.5 -> GamepadHidDescriptor.HAT_DOWN_LEFT
+                                angle in 157.5..202.5 -> GamepadHidDescriptor.HAT_LEFT
+                                angle in 202.5..247.5 -> GamepadHidDescriptor.HAT_UP_LEFT
+                                angle in 247.5..292.5 -> GamepadHidDescriptor.HAT_UP
+                                angle in 292.5..337.5 -> GamepadHidDescriptor.HAT_UP_RIGHT
+                                else -> GamepadHidDescriptor.HAT_CENTER
+                            }
+
+                            // Analog fallback axis
+                            newX = (dx / dpadRadius * 127f).coerceIn(-127f, 127f).toInt().toByte()
+                            newY = (dy / dpadRadius * 127f).coerceIn(-127f, 127f).toInt().toByte()
+                        }
+                    }
+                    TARGET_BTN_A -> newButtons = newButtons or GamepadHidDescriptor.BUTTON_A
+                    TARGET_BTN_B -> newButtons = newButtons or GamepadHidDescriptor.BUTTON_B
+                    TARGET_BTN_L -> newButtons = newButtons or GamepadHidDescriptor.BUTTON_L1
+                    TARGET_BTN_R -> newButtons = newButtons or GamepadHidDescriptor.BUTTON_R1
+                    TARGET_SELECT -> newButtons = newButtons or GamepadHidDescriptor.BUTTON_SELECT
+                    TARGET_START -> newButtons = newButtons or GamepadHidDescriptor.BUTTON_START
+                }
             }
         }
 

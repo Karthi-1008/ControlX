@@ -3,6 +3,9 @@ project(native-mgba C)
 
 set(CMAKE_C_STANDARD 11)
 
+# High performance optimization flags for ARM Cortex CPU
+add_compile_options(-O3 -fomit-frame-pointer -ffast-math)
+
 # Options for mGBA libretro build
 set(BUILD_LIBRETRO ON CACHE BOOL "" FORCE)
 set(LIBRETRO_STATIC ON CACHE BOOL "" FORCE)

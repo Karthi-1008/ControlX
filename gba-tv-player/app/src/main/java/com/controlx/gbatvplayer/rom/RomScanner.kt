@@ -167,4 +167,21 @@ object RomScanner {
             }
         }
     }
+
+    /**
+     * Streams an uncompressed ROM from a ZIP file into a cache file using a small 64KB buffer.
+     * Prevents allocating up to 32MB ByteArray on the low-memory Android TV Java heap.
+     */
+    fun extractZipRomToCache(context: Context, zipFilePath: String, entryName: String): File {
+        val cacheFile = File(context.cacheDir, "current_rom.gba")
+        ZipFile(File(zipFilePath)).use { zip ->
+            val entry = zip.getEntry(entryName) ?: throw IllegalArgumentException("Entry $entryName not found in zip")
+            zip.getInputStream(entry).use { input ->
+                cacheFile.outputStream().use { output ->
+                    input.copyTo(output, bufferSize = 64 * 1024)
+                }
+            }
+        }
+        return cacheFile
+    }
 }

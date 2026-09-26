@@ -102,6 +102,9 @@ class GbaGlRenderer : GLSurfaceView.Renderer {
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE)
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE)
 
+        // Set unpack alignment for 16-bit RGB565 (2 bytes per pixel)
+        GLES20.glPixelStorei(GLES20.GL_UNPACK_ALIGNMENT, 2)
+
         // Allocate empty 240x160 RGB565 texture
         GLES20.glTexImage2D(
             GLES20.GL_TEXTURE_2D,

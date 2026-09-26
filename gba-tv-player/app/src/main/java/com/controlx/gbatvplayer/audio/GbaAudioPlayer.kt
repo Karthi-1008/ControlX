@@ -24,8 +24,8 @@ class GbaAudioPlayer(private val sampleRate: Int = 32768) {
             AudioFormat.ENCODING_PCM_16BIT
         )
 
-        // Buffer for ~50ms (well under target <= 92ms latency)
-        val targetBufferSize = (minBufferSize * 2).coerceAtLeast(2048)
+        // Buffer for ~60-80ms cushion to absorb low-end TV scheduling jitter
+        val targetBufferSize = (minBufferSize * 3).coerceAtLeast(4096)
 
         try {
             val audioAttributes = AudioAttributes.Builder()
@@ -60,7 +60,11 @@ class GbaAudioPlayer(private val sampleRate: Int = 32768) {
     fun write(samples: ShortArray, offset: Int, count: Int): Int {
         val track = audioTrack ?: return 0
         if (!isPlaying || count <= 0) return 0
-        return track.write(samples, offset, count)
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            track.write(samples, offset, count, AudioTrack.WRITE_NON_BLOCKING)
+        } else {
+            track.write(samples, offset, count)
+        }
     }
 
     fun pause() {

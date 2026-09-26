@@ -62,7 +62,9 @@ class EmulatorActivity : AppCompatActivity(), InputManager.PocketPadListener {
     private val isPaused = AtomicBoolean(false)
     private var emulationThread: Thread? = null
 
-    private val directFrameBuffer: ByteBuffer = ByteBuffer.allocateDirect(MgbaBridge.GBA_FRAME_SIZE)
+    private val directFrameBufferA: ByteBuffer = ByteBuffer.allocateDirect(MgbaBridge.GBA_FRAME_SIZE)
+        .order(ByteOrder.nativeOrder())
+    private val directFrameBufferB: ByteBuffer = ByteBuffer.allocateDirect(MgbaBridge.GBA_FRAME_SIZE)
         .order(ByteOrder.nativeOrder())
 
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -127,10 +129,15 @@ class EmulatorActivity : AppCompatActivity(), InputManager.PocketPadListener {
 
         MgbaBridge.nativeInit(systemDir, savesDirPath)
 
+        // Stream zip directly to file to prevent allocating large byte array on 1GB RAM Java heap
         val loaded = if (isZip && zipEntryName != null) {
-            val romInfo = RomInfo(romTitle, "", romPath, 0f, true, zipEntryName)
-            val bytes = RomScanner.loadRomBytes(romInfo)
-            MgbaBridge.nativeLoadRomBytes(bytes, bytes.size, zipEntryName ?: "rom.gba")
+            try {
+                val cacheRom = RomScanner.extractZipRomToCache(this, romPath, zipEntryName!!)
+                MgbaBridge.nativeLoadRomPath(cacheRom.absolutePath)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error extracting zip ROM to cache", e)
+                false
+            }
         } else {
             MgbaBridge.nativeLoadRomPath(romPath)
         }
@@ -147,32 +154,48 @@ class EmulatorActivity : AppCompatActivity(), InputManager.PocketPadListener {
         loadBatterySram()
 
         val audioBuffer = ShortArray(2048)
-        var lastFrameTime = System.nanoTime()
+        var currentFrameBuffer = directFrameBufferA
+        var nextFrameTargetNs = System.nanoTime()
+        var skippedFramesCount = 0
+        val maxConsecutiveSkips = 2
+
         var fpsCounter = 0
         var lastFpsTime = System.currentTimeMillis()
         var lastSramSaveTime = System.currentTimeMillis()
 
         while (isRunning.get()) {
             if (isPaused.get()) {
-                LockSupport.parkNanos(10_000_000L) // 10ms
-                lastFrameTime = System.nanoTime()
+                LockSupport.parkNanos(20_000_000L) // 20ms
+                nextFrameTargetNs = System.nanoTime()
                 continue
             }
 
             val keys = inputManager.keysMask
+            val nowNs = System.nanoTime()
+
+            // If behind schedule by >12ms, skip video rendering for up to 2 frames to maintain 60FPS audio and physics
+            val isBehind = (nowNs - nextFrameTargetNs) > 12_000_000L
+            val shouldSkipRender = isBehind && (skippedFramesCount < maxConsecutiveSkips)
 
             // Step frame in mGBA native core
             val samplesCount = MgbaBridge.nativeRunFrame(keys, audioBuffer, audioBuffer.size)
 
-            // Submit audio
+            // Submit audio immediately
             if (samplesCount > 0) {
                 audioPlayer.write(audioBuffer, 0, samplesCount)
             }
 
-            // Fetch video frame and request GL render
-            MgbaBridge.nativeGetVideoFrame(directFrameBuffer)
-            glRenderer.submitFrame(directFrameBuffer)
-            binding.glSurfaceView.requestRender()
+            if (shouldSkipRender) {
+                skippedFramesCount++
+            } else {
+                skippedFramesCount = 0
+                if (MgbaBridge.nativeGetVideoFrame(currentFrameBuffer)) {
+                    glRenderer.submitFrame(currentFrameBuffer)
+                    binding.glSurfaceView.requestRender()
+                    // Swap double buffers to eliminate tearing and thread contention
+                    currentFrameBuffer = if (currentFrameBuffer === directFrameBufferA) directFrameBufferB else directFrameBufferA
+                }
+            }
 
             fpsCounter++
             val nowMs = System.currentTimeMillis()
@@ -192,19 +215,21 @@ class EmulatorActivity : AppCompatActivity(), InputManager.PocketPadListener {
                 lastSramSaveTime = nowMs
             }
 
-            // Precision frame rate limiter (59.7 FPS)
+            // Cadence-anchored frame rate limiter
             val targetInterval = if (isFastForward) FRAME_DURATION_NS / 2 else FRAME_DURATION_NS
-            val targetTime = lastFrameTime + targetInterval
-            val nowNs = System.nanoTime()
-            val sleepNs = targetTime - nowNs
+            nextFrameTargetNs += targetInterval
 
-            if (sleepNs > 1_000_000L) {
-                LockSupport.parkNanos(sleepNs - 500_000L)
+            val afterWorkNs = System.nanoTime()
+            val sleepNs = nextFrameTargetNs - afterWorkNs
+
+            if (sleepNs > 2_000_000L) {
+                LockSupport.parkNanos(sleepNs - 1_000_000L)
             }
-            while (System.nanoTime() < targetTime) {
-                // spin for remaining fractional sub-millisecond precision
+
+            // Reset deadline if lagged behind by > 100ms (e.g. system interrupt / GC)
+            if (afterWorkNs - nextFrameTargetNs > 100_000_000L) {
+                nextFrameTargetNs = afterWorkNs
             }
-            lastFrameTime = System.nanoTime()
         }
 
         // Save SRAM on exit

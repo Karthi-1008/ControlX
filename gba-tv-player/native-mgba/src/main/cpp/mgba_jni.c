@@ -79,6 +79,26 @@ static bool cb_environment(unsigned cmd, void *data) {
                 var->value = "OFF";
                 return true;
             }
+            if (strcmp(var->key, "mgba_frameskip") == 0) {
+                var->value = "auto";
+                return true;
+            }
+            if (strcmp(var->key, "mgba_frameskip_threshold") == 0) {
+                var->value = "33";
+                return true;
+            }
+            if (strcmp(var->key, "mgba_frameskip_interval") == 0) {
+                var->value = "1";
+                return true;
+            }
+            if (strcmp(var->key, "mgba_audio_low_pass_filter") == 0) {
+                var->value = "disabled";
+                return true;
+            }
+            if (strcmp(var->key, "mgba_interframe_blending") == 0) {
+                var->value = "disabled";
+                return true;
+            }
             return false;
         }
         default:
@@ -92,8 +112,13 @@ static void cb_video_refresh(const void *data, unsigned width, unsigned height, 
     unsigned copy_h = height > GBA_HEIGHT ? GBA_HEIGHT : height;
     const uint8_t *src = (const uint8_t *)data;
 
-    for (unsigned y = 0; y < copy_h; y++) {
-        memcpy(&s_frame_buffer[y * GBA_WIDTH], src + (y * pitch), copy_w * sizeof(uint16_t));
+    // Fast path: contiguous framebuffer copy utilizes vectorized NEON memcpy
+    if (pitch == copy_w * sizeof(uint16_t)) {
+        memcpy(s_frame_buffer, src, copy_w * copy_h * sizeof(uint16_t));
+    } else {
+        for (unsigned y = 0; y < copy_h; y++) {
+            memcpy(&s_frame_buffer[y * GBA_WIDTH], src + (y * pitch), copy_w * sizeof(uint16_t));
+        }
     }
     s_has_new_frame = true;
 }
@@ -267,6 +292,7 @@ JNIEXPORT jboolean JNICALL
 Java_com_controlx_nativemgba_MgbaBridge_nativeGetVideoFrame(JNIEnv *env, jclass clazz, jobject directBuf) {
     (void)clazz;
     if (!directBuf) return JNI_FALSE;
+    if (!s_has_new_frame) return JNI_FALSE;
 
     void *dest = (*env)->GetDirectBufferAddress(env, directBuf);
     if (!dest) return JNI_FALSE;
