@@ -18,7 +18,7 @@ android {
                     "-DBUILD_LIBRETRO=ON",
                     "-DLIBRETRO_STATIC=ON",
                     "-DM_CORE_GBA=ON",
-                    "-DM_CORE_GB=OFF",
+                    "-DM_CORE_GB=ON",
                     "-DSKIP_LIBRARY=ON",
                     "-DDISABLE_DEPS=ON",
                     "-DUSE_EPOXY=OFF",
