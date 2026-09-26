@@ -1,0 +1,14 @@
+<resources>
+    <style name="Theme.GbaTvPlayer" parent="Theme.MaterialComponents.NoActionBar">
+        <item name="colorPrimary">@color/accent_blue</item>
+        <item name="colorSecondary">@color/accent_indigo</item>
+        <item name="android:windowBackground">@color/tv_bg</item>
+        <item name="android:statusBarColor">@color/tv_bg</item>
+        <item name="android:navigationBarColor">@color/tv_bg</item>
+    </style>
+
+    <style name="Theme.GbaTvPlayer.Fullscreen" parent="Theme.GbaTvPlayer">
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+    </style>
+</resources>

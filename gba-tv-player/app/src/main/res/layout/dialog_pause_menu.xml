@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="400dp"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@color/tv_surface"
+    android:padding="24dp">
+
+    <TextView
+        android:id="@+id/dialog_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/pause_menu_title"
+        android:textColor="@color/text_primary"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginBottom="16dp" />
+
+    <Button
+        android:id="@+id/btn_menu_resume"
+        style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="@string/menu_resume"
+        android:backgroundTint="@color/accent_blue"
+        android:textColor="@color/white"
+        android:layout_marginBottom="8dp"
+        android:focusable="true" />
+
+    <Button
+        android:id="@+id/btn_menu_slot"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="Slot: 1 (Tap to switch 1-4)"
+        android:textColor="@color/text_primary"
+        android:layout_marginBottom="8dp"
+        android:focusable="true" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="8dp">
+
+        <Button
+            android:id="@+id/btn_menu_save"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:text="Save State"
+            android:textColor="@color/text_primary"
+            android:layout_marginEnd="6dp"
+            android:focusable="true" />
+
+        <Button
+            android:id="@+id/btn_menu_load"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:text="Load State"
+            android:textColor="@color/text_primary"
+            android:layout_marginStart="6dp"
+            android:focusable="true" />
+
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/btn_menu_fast_forward"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="Fast Forward: Off"
+        android:textColor="@color/text_primary"
+        android:layout_marginBottom="8dp"
+        android:focusable="true" />
+
+    <Button
+        android:id="@+id/btn_menu_filter"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="Filter: Nearest-Neighbor"
+        android:textColor="@color/text_primary"
+        android:layout_marginBottom="8dp"
+        android:focusable="true" />
+
+    <Button
+        android:id="@+id/btn_menu_reset"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="@string/menu_reset"
+        android:textColor="@color/accent_gold"
+        android:layout_marginBottom="8dp"
+        android:focusable="true" />
+
+    <Button
+        android:id="@+id/btn_menu_exit"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="@string/menu_exit"
+        android:textColor="@color/accent_red"
+        android:focusable="true" />
+
+</LinearLayout>

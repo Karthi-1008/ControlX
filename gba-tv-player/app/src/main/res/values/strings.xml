@@ -1,0 +1,40 @@
+<resources>
+    <string name="app_name">GBA TV Player</string>
+    <string name="tagline">Optimized for Android TV</string>
+    
+    <string name="folder_label">ROM Folder: %1$s</string>
+    <string name="change_folder">Change Folder</string>
+    <string name="refresh_roms">Refresh</string>
+    <string name="remap_controls">Remap Controls</string>
+    <string name="settings">Settings</string>
+    
+    <string name="no_roms_title">No GBA ROMs Found</string>
+    <string name="no_roms_desc">Place your legally-owned .gba or .zip ROM files into:\n%1$s\n\nThen press Refresh.</string>
+    <string name="roms_count">%1$d Games Available</string>
+    
+    <string name="controller_connected">Controller Connected: %1$s</string>
+    <string name="controller_pocketpad">PocketPad Connected: %1$s</string>
+    <string name="no_gamepad_warning">TV Remote active. Connect a Bluetooth gamepad or launch PocketPad on your phone for full controls.</string>
+    
+    <string name="pause_menu_title">Game Paused</string>
+    <string name="menu_resume">Resume</string>
+    <string name="menu_save_state">Save State (Slot %1$d)</string>
+    <string name="menu_load_state">Load State (Slot %1$d)</string>
+    <string name="menu_select_slot">Current Slot: %1$d</string>
+    <string name="menu_fast_forward">Fast Forward: %1$s</string>
+    <string name="menu_filter">Filter: %1$s</string>
+    <string name="menu_aspect">Aspect Ratio: %1$s</string>
+    <string name="menu_reset">Reset Game</string>
+    <string name="menu_exit">Quit to Library</string>
+    
+    <string name="state_saved">State saved to Slot %1$d</string>
+    <string name="state_loaded">State loaded from Slot %1$d</string>
+    <string name="state_error">Save state failed</string>
+    <string name="state_not_found">No save state found in Slot %1$d</string>
+    
+    <string name="remap_title">Gamepad Button Remapping</string>
+    <string name="remap_press_button">Press the button on your controller for: %1$s</string>
+    <string name="remap_reset_defaults">Reset to Defaults</string>
+    
+    <string name="btn_cancel">Cancel</string>
+</resources>

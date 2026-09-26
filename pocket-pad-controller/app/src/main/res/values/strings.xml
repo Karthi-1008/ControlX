@@ -1,0 +1,19 @@
+<resources>
+    <string name="app_name">Pocket Pad</string>
+    <string name="status_disconnected">Disconnected</string>
+    <string name="status_registering">Registering HID Service&#8230;</string>
+    <string name="status_ready">Ready to Connect</string>
+    <string name="status_connected">Connected to %1$s</string>
+    <string name="status_connecting">Connecting to %1$s&#8230;</string>
+    
+    <string name="btn_connect">Connect to TV</string>
+    <string name="btn_reconnect">Quick Reconnect</string>
+    <string name="btn_disconnect">Disconnect</string>
+    <string name="btn_haptic_toggle">Haptics: %1$s</string>
+    <string name="btn_make_discoverable">Make Discoverable (300s)</string>
+    
+    <string name="dialog_select_tv">Select Paired TV / Host</string>
+    <string name="no_paired_devices">No paired Bluetooth hosts found. Tap Make Discoverable, then on your TV go to Settings &gt; Remotes and Accessories &gt; Add Accessory to pair this phone.</string>
+    <string name="permission_required">Bluetooth permissions are required to emulate a Bluetooth gamepad.</string>
+    <string name="btn_cancel">Cancel</string>
+</resources>

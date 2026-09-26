@@ -1,0 +1,1 @@
+# Pocket Pad Proguard Rules

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    
+    <color name="tv_bg">#0F1117</color>
+    <color name="tv_surface">#181B24</color>
+    <color name="tv_card">#202534</color>
+    <color name="tv_card_focus">#343C54</color>
+    
+    <color name="accent_blue">#3D5AFE</color>
+    <color name="accent_indigo">#5C6BC0</color>
+    <color name="accent_red">#FF5252</color>
+    <color name="accent_gold">#FFD700</color>
+    <color name="accent_green">#00E676</color>
+    
+    <color name="focus_stroke">#536DFE</color>
+    <color name="text_primary">#F0F3F8</color>
+    <color name="text_secondary">#8C95A6</color>
+</resources>
