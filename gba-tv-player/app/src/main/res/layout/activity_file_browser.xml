@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/tv_bg"
+    android:paddingStart="32dp"
+    android:paddingEnd="32dp"
+    android:paddingTop="20dp"
+    android:paddingBottom="20dp">
+
+    <!-- Header bar with Title, Current Path, and Primary Actions -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Choose Game or Folder"
+                android:textColor="@color/text_primary"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_browser_path"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="/storage/emulated/0"
+                android:textColor="@color/accent_indigo"
+                android:textSize="13sp"
+                android:layout_marginTop="2dp"
+                android:ellipsize="start"
+                android:singleLine="true" />
+
+        </LinearLayout>
+
+        <!-- Main Action Buttons -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btn_up_dir"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="42dp"
+                android:text="▲ Up"
+                android:textColor="@color/text_primary"
+                android:textSize="12sp"
+                android:layout_marginEnd="10dp"
+                android:focusable="true" />
+
+            <Button
+                android:id="@+id/btn_use_current_folder"
+                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="42dp"
+                android:text="✓ Use This Folder"
+                android:backgroundTint="@color/accent_green"
+                android:textColor="#0F1117"
+                android:textStyle="bold"
+                android:textSize="12sp"
+                android:focusable="true" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- Quick Location Shortcuts Row -->
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btn_quick_roms"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:text="📁 /GBA_ROMS"
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp"
+                android:focusable="true"
+                android:layout_marginEnd="6dp" />
+
+            <Button
+                android:id="@+id/btn_quick_download"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:text="📁 Downloads"
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp"
+                android:focusable="true"
+                android:layout_marginEnd="6dp" />
+
+            <Button
+                android:id="@+id/btn_quick_internal"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:text="📁 Internal Storage"
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp"
+                android:focusable="true"
+                android:layout_marginEnd="6dp" />
+
+            <Button
+                android:id="@+id/btn_quick_usb"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:text="💾 USB / Storage"
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp"
+                android:focusable="true"
+                android:layout_marginEnd="6dp" />
+
+            <Button
+                android:id="@+id/btn_quick_app"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:text="📁 App Storage"
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp"
+                android:focusable="true" />
+
+        </LinearLayout>
+
+    </HorizontalScrollView>
+
+    <!-- Empty folder indicator -->
+    <TextView
+        android:id="@+id/tv_empty_folder"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="No folders or GBA games (.gba, .zip) found in this directory."
+        android:textColor="@color/text_secondary"
+        android:textSize="13sp"
+        android:gravity="center"
+        android:layout_marginTop="32dp"
+        android:visibility="gone" />
+
+    <!-- File and Folder list -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recycler_browser"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="10dp"
+        android:clipToPadding="false"
+        android:focusable="true" />
+
+</LinearLayout>

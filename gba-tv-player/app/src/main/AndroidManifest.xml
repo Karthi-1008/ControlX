@@ -24,6 +24,7 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
+        android:requestLegacyExternalStorage="true"
         android:theme="@style/Theme.GbaTvPlayer">
 
         <!-- TV Leanback Launcher Activity -->
@@ -38,6 +39,13 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- In-app File & Folder Browser -->
+        <activity
+            android:name=".FileBrowserActivity"
+            android:exported="false"
+            android:configChanges="orientation|keyboardHidden|screenSize|screenLayout|navigation"
+            android:screenOrientation="landscape" />
 
         <!-- Fullscreen Emulator Activity -->
         <activity
