@@ -45,8 +45,8 @@ static void audio_push(int16_t left, int16_t right) {
 static bool cb_environment(unsigned cmd, void *data) {
     switch (cmd) {
         case RETRO_ENVIRONMENT_SET_PIXEL_FORMAT: {
-            const enum retro_pixel_format *fmt = (const enum retro_pixel_format *)data;
-            return (*fmt == RETRO_PIXEL_FORMAT_RGB565);
+            const int *fmt = (const int *)data;
+            return (*fmt == 2); // 2 == RETRO_PIXEL_FORMAT_RGB565
         }
         case RETRO_ENVIRONMENT_GET_SYSTEM_DIRECTORY: {
             const char **dir = (const char **)data;
