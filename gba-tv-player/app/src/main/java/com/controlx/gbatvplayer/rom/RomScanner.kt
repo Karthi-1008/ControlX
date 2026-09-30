@@ -7,6 +7,11 @@ import java.io.File
 import java.io.InputStream
 import java.util.zip.ZipFile
 
+enum class ConsoleType {
+    GBA,
+    NES
+}
+
 data class RomInfo(
     val title: String,
     val gameCode: String,
@@ -14,7 +19,8 @@ data class RomInfo(
     val fileSizeMb: Float,
     val isZip: Boolean,
     val zipEntryName: String? = null,
-    val lastModified: Long = 0L
+    val lastModified: Long = 0L,
+    val consoleType: ConsoleType = ConsoleType.GBA
 )
 
 object RomScanner {
@@ -40,6 +46,9 @@ object RomScanner {
                 if (name.endsWith(".gba") || name.endsWith(".agb") || name.endsWith(".bin")) {
                     val romInfo = parseGbaFile(f)
                     list.add(romInfo)
+                } else if (name.endsWith(".nes")) {
+                    val romInfo = parseNesFile(f)
+                    list.add(romInfo)
                 } else if (name.endsWith(".zip")) {
                     val romInfo = parseZipFile(f)
                     if (romInfo != null) {
@@ -59,12 +68,12 @@ object RomScanner {
 
         try {
             file.inputStream().use { stream ->
-                val header = readHeader(stream)
+                val header = readGbaHeader(stream)
                 title = header.first
                 code = header.second
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to read header from ${file.name}", e)
+            Log.e(TAG, "Failed to read GBA header from ${file.name}", e)
         }
 
         if (title.isBlank()) {
@@ -74,11 +83,47 @@ object RomScanner {
         val sizeMb = file.length() / (1024f * 1024f)
         return RomInfo(
             title = title,
+            gameCode = if (code.isNotBlank()) code else "GBA",
+            filePath = file.absolutePath,
+            fileSizeMb = sizeMb,
+            isZip = false,
+            lastModified = file.lastModified(),
+            consoleType = ConsoleType.GBA
+        )
+    }
+
+    private fun parseNesFile(file: File): RomInfo {
+        var mapper = 0
+        var isValidNes = false
+
+        try {
+            file.inputStream().use { stream ->
+                val header = ByteArray(16)
+                val read = stream.read(header)
+                if (read >= 16 && header[0] == 'N'.code.toByte() && header[1] == 'E'.code.toByte() &&
+                    header[2] == 'S'.code.toByte() && header[3] == 0x1A.toByte()) {
+                    isValidNes = true
+                    val flags6 = header[6].toInt() and 0xFF
+                    val flags7 = header[7].toInt() and 0xFF
+                    mapper = (flags7 and 0xF0) or (flags6 ushr 4)
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to read NES header from ${file.name}", e)
+        }
+
+        val title = file.nameWithoutExtension.replace('_', ' ')
+        val sizeMb = file.length() / (1024f * 1024f)
+        val code = if (isValidNes) "NES-M$mapper" else "NES"
+
+        return RomInfo(
+            title = title,
             gameCode = code,
             filePath = file.absolutePath,
             fileSizeMb = sizeMb,
             isZip = false,
-            lastModified = file.lastModified()
+            lastModified = file.lastModified(),
+            consoleType = ConsoleType.NES
         )
     }
 
@@ -89,12 +134,13 @@ object RomScanner {
                 while (entries.hasMoreElements()) {
                     val entry = entries.nextElement()
                     val lower = entry.name.lowercase()
+
                     if (lower.endsWith(".gba") || lower.endsWith(".agb") || lower.endsWith(".bin")) {
                         var title = ""
                         var code = ""
                         try {
                             zip.getInputStream(entry).use { stream ->
-                                val header = readHeader(stream)
+                                val header = readGbaHeader(stream)
                                 title = header.first
                                 code = header.second
                             }
@@ -109,12 +155,46 @@ object RomScanner {
                         val sizeMb = entry.size / (1024f * 1024f)
                         return RomInfo(
                             title = title,
+                            gameCode = if (code.isNotBlank()) code else "GBA",
+                            filePath = file.absolutePath,
+                            fileSizeMb = sizeMb,
+                            isZip = true,
+                            zipEntryName = entry.name,
+                            lastModified = file.lastModified(),
+                            consoleType = ConsoleType.GBA
+                        )
+                    } else if (lower.endsWith(".nes")) {
+                        var mapper = 0
+                        var isValidNes = false
+                        try {
+                            zip.getInputStream(entry).use { stream ->
+                                val header = ByteArray(16)
+                                val read = stream.read(header)
+                                if (read >= 16 && header[0] == 'N'.code.toByte() && header[1] == 'E'.code.toByte() &&
+                                    header[2] == 'S'.code.toByte() && header[3] == 0x1A.toByte()) {
+                                    isValidNes = true
+                                    val flags6 = header[6].toInt() and 0xFF
+                                    val flags7 = header[7].toInt() and 0xFF
+                                    mapper = (flags7 and 0xF0) or (flags6 ushr 4)
+                                }
+                            }
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Failed to read zip NES entry header", e)
+                        }
+
+                        val title = File(entry.name).nameWithoutExtension.replace('_', ' ')
+                        val sizeMb = entry.size / (1024f * 1024f)
+                        val code = if (isValidNes) "NES-M$mapper" else "NES"
+
+                        return RomInfo(
+                            title = title,
                             gameCode = code,
                             filePath = file.absolutePath,
                             fileSizeMb = sizeMb,
                             isZip = true,
                             zipEntryName = entry.name,
-                            lastModified = file.lastModified()
+                            lastModified = file.lastModified(),
+                            consoleType = ConsoleType.NES
                         )
                     }
                 }
@@ -125,7 +205,7 @@ object RomScanner {
         return null
     }
 
-    private fun readHeader(stream: InputStream): Pair<String, String> {
+    private fun readGbaHeader(stream: InputStream): Pair<String, String> {
         // GBA header: Title at 0xA0 (12 bytes), Game code at 0xAC (4 bytes)
         val skipped = stream.skip(0xA0)
         if (skipped < 0xA0) return Pair("", "")
@@ -173,7 +253,8 @@ object RomScanner {
      * Prevents allocating up to 32MB ByteArray on the low-memory Android TV Java heap.
      */
     fun extractZipRomToCache(context: Context, zipFilePath: String, entryName: String): File {
-        val cacheFile = File(context.cacheDir, "current_rom.gba")
+        val ext = if (entryName.lowercase().endsWith(".nes")) ".nes" else ".gba"
+        val cacheFile = File(context.cacheDir, "current_rom$ext")
         ZipFile(File(zipFilePath)).use { zip ->
             val entry = zip.getEntry(entryName) ?: throw IllegalArgumentException("Entry $entryName not found in zip")
             zip.getInputStream(entry).use { input ->

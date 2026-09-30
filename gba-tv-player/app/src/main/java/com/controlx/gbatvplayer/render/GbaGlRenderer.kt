@@ -75,7 +75,22 @@ class GbaGlRenderer : GLSurfaceView.Renderer {
             filterDirty = true
         }
 
+    @Volatile
+    var videoWidth: Int = 240
+    @Volatile
+    var videoHeight: Int = 160
+    @Volatile
+    var targetAspect: Float = 3.0f / 2.0f
+
+    fun configure(width: Int, height: Int, aspectW: Float, aspectH: Float) {
+        videoWidth = width
+        videoHeight = height
+        targetAspect = aspectW / aspectH
+        textureAllocated = false
+    }
+
     private var filterDirty = false
+    private var textureAllocated = false
     private var frameBuffer: ByteBuffer? = null
     private val frameLock = Any()
     private var hasNewFrame = false
@@ -105,18 +120,19 @@ class GbaGlRenderer : GLSurfaceView.Renderer {
         // Set unpack alignment for 16-bit RGB565 (2 bytes per pixel)
         GLES20.glPixelStorei(GLES20.GL_UNPACK_ALIGNMENT, 2)
 
-        // Allocate empty 240x160 RGB565 texture
+        // Allocate initial RGB565 texture
         GLES20.glTexImage2D(
             GLES20.GL_TEXTURE_2D,
             0,
             GLES20.GL_RGB,
-            240,
-            160,
+            videoWidth,
+            videoHeight,
             0,
             GLES20.GL_RGB,
             GLES20.GL_UNSIGNED_SHORT_5_6_5,
             null
         )
+        textureAllocated = true
     }
 
     override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
@@ -126,8 +142,6 @@ class GbaGlRenderer : GLSurfaceView.Renderer {
     }
 
     private fun updateViewport() {
-        // GBA aspect ratio is 240:160 = 3:2
-        val targetAspect = 3.0f / 2.0f
         val screenAspect = surfaceWidth.toFloat() / surfaceHeight.toFloat()
 
         val vpWidth: Int
@@ -136,7 +150,7 @@ class GbaGlRenderer : GLSurfaceView.Renderer {
         val vpY: Int
 
         if (screenAspect > targetAspect) {
-            // Screen is wider than 3:2 (pillarbox: black bars on left/right)
+            // Screen is wider than target aspect (pillarbox: black bars on left/right)
             vpHeight = surfaceHeight
             vpWidth = (surfaceHeight * targetAspect).toInt()
             vpX = (surfaceWidth - vpWidth) / 2
@@ -164,6 +178,22 @@ class GbaGlRenderer : GLSurfaceView.Renderer {
 
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureId)
 
+        if (!textureAllocated) {
+            GLES20.glTexImage2D(
+                GLES20.GL_TEXTURE_2D,
+                0,
+                GLES20.GL_RGB,
+                videoWidth,
+                videoHeight,
+                0,
+                GLES20.GL_RGB,
+                GLES20.GL_UNSIGNED_SHORT_5_6_5,
+                null
+            )
+            textureAllocated = true
+            updateViewport()
+        }
+
         if (filterDirty) {
             val filter = if (isBilinear) GLES20.GL_LINEAR else GLES20.GL_NEAREST
             GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, filter)
@@ -180,8 +210,8 @@ class GbaGlRenderer : GLSurfaceView.Renderer {
                     0,
                     0,
                     0,
-                    240,
-                    160,
+                    videoWidth,
+                    videoHeight,
                     GLES20.GL_RGB,
                     GLES20.GL_UNSIGNED_SHORT_5_6_5,
                     buf

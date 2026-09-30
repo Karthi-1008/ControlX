@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 3.12)
-project(native-mgba C)
+project(native-mgba C CXX)
 
 set(CMAKE_C_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 
 # High performance optimization flags for ARM Cortex CPU
 add_compile_options(-O3 -fomit-frame-pointer -ffast-math)
@@ -56,3 +57,19 @@ target_link_libraries(mgba-jni PRIVATE
     android
     log
 )
+
+# Build NES JNI shared library
+add_library(nes-jni SHARED
+    nes_jni.cpp
+    nes_core.cpp
+)
+
+target_include_directories(nes-jni PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+target_link_libraries(nes-jni PRIVATE
+    android
+    log
+)
+

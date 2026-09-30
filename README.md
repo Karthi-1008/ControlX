@@ -10,19 +10,22 @@ This monorepo contains two complementary Android applications:
 
 | Application | Target | Purpose | Key Tech |
 |---|---|---|---|
-| **GBA TV Player** (`gba-tv-player`) | Android TV (API 26–30+) | High-performance, lightweight GBA emulator | mGBA Libretro Core (JNI), OpenGL ES 2.0, Low-latency AudioTrack, Android TV Leanback UI |
+| **TV Player (GBA & NES)** (`gba-tv-player`) | Android TV (API 26–30+) | High-performance, lightweight GBA & NES emulator | Native mGBA Core & Custom C++ NES Engine (JNI), OpenGL ES 2.0, Low-latency AudioTrack, Android TV Leanback UI |
 | **Pocket Pad** (`pocket-pad-controller`) | Android Phone (API 28+) | Low-latency physical Bluetooth HID Gamepad | `android.bluetooth.BluetoothHidDevice`, zero-network Bluetooth HID, Multi-touch virtual layout |
 
 ---
 
 ## 🚀 Key Features
 
-### 📺 App A — GBA TV Player
-- **Native mGBA Core**: High accuracy and efficiency, compiled via Android NDK for `armeabi-v7a` and `arm64-v8a`.
-- **Locked 59.7 FPS Performance**: Hardware-accelerated OpenGL ES 2.0 rendering surface with toggleable Nearest-Neighbor and Bilinear scaling.
-- **Ultra-Low-Latency Audio**: Native `AudioTrack` low-latency mode (≤ 50ms latency at 32,768 Hz stereo PCM).
-- **Sub-150MB Resident Memory**: Native core runs outside Java VM heap, respecting the TV's strict 192MB heap ceiling.
-- **Seamless ROM Loading**: Reads `.gba`, `.agb`, `.bin`, and `.zip` archives directly without manual disk extraction.
+### 📺 App A — TV Player (GBA & NES)
+- **Dual Console Emulation**:
+  - **Nintendo Game Boy Advance (GBA)**: Powered by native mGBA core (240x160, 3:2 aspect ratio, 59.7 FPS, 32,768 Hz stereo).
+  - **Nintendo Entertainment System (NES)**: Powered by custom zero-overhead native C++ NES core (256x240, 4:3 aspect ratio, 60.1 FPS, 44,100 Hz stereo). Supports standard iNES format across major mappers: NROM (0), MMC1 (1), UxROM (2), CNROM (3), MMC3 (4), and AxROM (7).
+- **Auto Console Detection**: Automatically identifies GBA vs. NES cartridges from file extension (`.gba`, `.agb`, `.bin`, `.nes`) or compressed `.zip` archives.
+- **Hardware-Accelerated OpenGL ES 2.0 Surface**: Dynamic viewport scaling (3:2 for GBA, 4:3 for NES) with toggleable Nearest-Neighbor and Bilinear filtering.
+- **Ultra-Low-Latency Audio**: Native `AudioTrack` low-latency mode (44.1 kHz stereo for NES, 32.8 kHz stereo for GBA).
+- **Sub-150MB Resident Memory**: Native engines execute outside Java VM heap, staying well within strict 192MB TV heap caps.
+- **Seamless ROM Loading**: Reads `.gba`, `.agb`, `.bin`, `.nes`, and `.zip` archives directly without manual disk extraction.
 - **Save States & Battery Saves**: 4 save state slots with instant save/load, plus automatic SRAM `.sav` persistence.
 - **Android TV Remote & Gamepad Support**: Navigate menus with your standard TV remote; play games using Pocket Pad or any Bluetooth gamepad.
 - **In-App Button Remapping**: Rebind any controller key to your preference.

@@ -118,7 +118,7 @@ class FileBrowserActivity : AppCompatActivity() {
                     BrowserItem.DirectoryItem(folder, count)
                 }
 
-            // Then collect game files (.gba, .zip, .agb, .bin)
+            // Then collect game files (.gba, .nes, .zip, .agb, .bin)
             val gameFiles = files.filter { it.isFile && !it.isHidden && isGameFile(it) }
                 .sortedBy { it.name.lowercase() }
                 .map { file ->
@@ -146,7 +146,8 @@ class FileBrowserActivity : AppCompatActivity() {
 
     private fun isGameFile(file: File): Boolean {
         val lower = file.name.lowercase()
-        return lower.endsWith(".gba") || lower.endsWith(".agb") || lower.endsWith(".bin") || lower.endsWith(".zip")
+        return lower.endsWith(".gba") || lower.endsWith(".agb") || lower.endsWith(".bin") ||
+               lower.endsWith(".nes") || lower.endsWith(".zip")
     }
 
     private fun inspectZip(file: File): String? {
@@ -156,7 +157,7 @@ class FileBrowserActivity : AppCompatActivity() {
                 while (entries.hasMoreElements()) {
                     val entry = entries.nextElement()
                     val lower = entry.name.lowercase()
-                    if (lower.endsWith(".gba") || lower.endsWith(".agb") || lower.endsWith(".bin")) {
+                    if (lower.endsWith(".gba") || lower.endsWith(".agb") || lower.endsWith(".bin") || lower.endsWith(".nes")) {
                         return entry.name
                     }
                 }
@@ -193,11 +194,14 @@ class FileBrowserActivity : AppCompatActivity() {
     private fun launchGameDirectly(item: BrowserItem.GameFileItem) {
         val file = item.file
         val title = file.nameWithoutExtension.replace('_', ' ')
+        val isNes = file.name.lowercase().endsWith(".nes") ||
+                    (item.zipRomTitle != null && item.zipRomTitle.lowercase().endsWith(".nes"))
         val intent = Intent(this, EmulatorActivity::class.java).apply {
             putExtra(EmulatorActivity.EXTRA_ROM_PATH, file.absolutePath)
             putExtra(EmulatorActivity.EXTRA_ROM_TITLE, title)
             putExtra(EmulatorActivity.EXTRA_ROM_IS_ZIP, item.isZip)
             putExtra(EmulatorActivity.EXTRA_ROM_ZIP_ENTRY, item.zipRomTitle)
+            putExtra(EmulatorActivity.EXTRA_CONSOLE_TYPE, if (isNes) "NES" else "GBA")
         }
         startActivity(intent)
     }
@@ -241,9 +245,12 @@ class FileBrowserActivity : AppCompatActivity() {
                     }
                 }
                 is BrowserItem.GameFileItem -> {
-                    holder.icon.text = "🎮"
+                    val isNes = item.file.name.lowercase().endsWith(".nes") ||
+                                (item.zipRomTitle != null && item.zipRomTitle.lowercase().endsWith(".nes"))
+                    holder.icon.text = if (isNes) "🕹️" else "🎮"
                     holder.name.text = item.file.name
-                    val type = if (item.isZip) "ZIP ARCHIVE" else "GBA ROM"
+                    val console = if (isNes) "NES" else "GBA"
+                    val type = if (item.isZip) "ZIP ($console)" else "$console ROM"
                     holder.sub.text = "$type • ${String.format("%.1f MB", item.sizeMb)}"
                     holder.hint.text = "PLAY ▶"
                     holder.hint.setTextColor(ContextCompat.getColor(this@FileBrowserActivity, R.color.accent_green))

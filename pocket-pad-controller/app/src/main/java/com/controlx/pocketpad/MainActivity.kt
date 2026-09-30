@@ -5,6 +5,7 @@ import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothProfile
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
@@ -26,6 +27,7 @@ import com.controlx.pocketpad.databinding.ActivityMainBinding
 import com.controlx.pocketpad.databinding.DialogDeviceListBinding
 import com.controlx.pocketpad.hid.BluetoothHidManager
 import com.controlx.pocketpad.ui.DeviceListAdapter
+import com.controlx.pocketpad.ui.GamepadMode
 import com.controlx.pocketpad.ui.TouchControllerView
 
 class MainActivity : AppCompatActivity(), BluetoothHidManager.Listener, TouchControllerView.InputChangeListener {
@@ -53,6 +55,13 @@ class MainActivity : AppCompatActivity(), BluetoothHidManager.Listener, TouchCon
         }
     }
 
+    companion object {
+        private const val PREFS_NAME = "pocketpad_prefs"
+        private const val KEY_GAMEPAD_MODE = "key_gamepad_mode"
+    }
+
+    private var currentMode = GamepadMode.GBA
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -65,6 +74,24 @@ class MainActivity : AppCompatActivity(), BluetoothHidManager.Listener, TouchCon
         hidManager.listener = this
 
         binding.touchController.inputChangeListener = this
+
+        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val savedMode = prefs.getString(KEY_GAMEPAD_MODE, GamepadMode.GBA.name) ?: GamepadMode.GBA.name
+        currentMode = try {
+            GamepadMode.valueOf(savedMode)
+        } catch (e: Exception) {
+            GamepadMode.GBA
+        }
+        binding.touchController.gamepadMode = currentMode
+        updatePadModeButton()
+
+        binding.btnPadMode.setOnClickListener {
+            currentMode = if (currentMode == GamepadMode.GBA) GamepadMode.NES else GamepadMode.GBA
+            binding.touchController.gamepadMode = currentMode
+            prefs.edit().putString(KEY_GAMEPAD_MODE, currentMode.name).apply()
+            updatePadModeButton()
+            Toast.makeText(this, "Gamepad switched to ${currentMode.name} mode", Toast.LENGTH_SHORT).show()
+        }
 
         binding.btnConnect.setOnClickListener {
             if (hidManager.isConnected) {
@@ -86,6 +113,16 @@ class MainActivity : AppCompatActivity(), BluetoothHidManager.Listener, TouchCon
 
         checkAndRequestPermissions()
         resetInactivityTimer()
+    }
+
+    private fun updatePadModeButton() {
+        if (currentMode == GamepadMode.NES) {
+            binding.btnPadMode.text = "🕹️ Pad: NES"
+            binding.btnPadMode.setTextColor(ContextCompat.getColor(this, R.color.status_red))
+        } else {
+            binding.btnPadMode.text = "🎮 Pad: GBA"
+            binding.btnPadMode.setTextColor(ContextCompat.getColor(this, R.color.gba_indigo))
+        }
     }
 
     private fun hideSystemUI() {

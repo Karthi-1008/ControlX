@@ -175,6 +175,7 @@ class MainActivity : AppCompatActivity() {
             putExtra(EmulatorActivity.EXTRA_ROM_TITLE, rom.title)
             putExtra(EmulatorActivity.EXTRA_ROM_IS_ZIP, rom.isZip)
             putExtra(EmulatorActivity.EXTRA_ROM_ZIP_ENTRY, rom.zipEntryName)
+            putExtra(EmulatorActivity.EXTRA_CONSOLE_TYPE, rom.consoleType.name)
         }
         startActivity(intent)
     }

@@ -67,6 +67,18 @@
             app:cornerRadius="18dp"
             android:visibility="gone" />
 
+        <!-- Gamepad Mode Toggle (GBA / NES) -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_pad_mode"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:layout_marginStart="8dp"
+            android:text="Pad: GBA"
+            android:textSize="11sp"
+            android:textColor="@color/text_primary"
+            app:cornerRadius="18dp" />
+
         <!-- Haptics Toggle -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_haptics"

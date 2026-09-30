@@ -1,11 +1,13 @@
 package com.controlx.gbatvplayer.ui
 
+import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.controlx.gbatvplayer.R
+import com.controlx.gbatvplayer.rom.ConsoleType
 import com.controlx.gbatvplayer.rom.RomInfo
 
 class RomCardAdapter(
@@ -17,6 +19,7 @@ class RomCardAdapter(
         val title: TextView = view.findViewById(R.id.card_title)
         val details: TextView = view.findViewById(R.id.card_details)
         val code: TextView = view.findViewById(R.id.card_game_code)
+        val icon: TextView = view.findViewById(R.id.card_icon_symbol)
     }
 
     fun updateList(newList: List<RomInfo>) {
@@ -32,10 +35,22 @@ class RomCardAdapter(
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val rom = romList[position]
         holder.title.text = rom.title
-        val type = if (rom.isZip) "ZIP" else "GBA"
+
+        val isNes = (rom.consoleType == ConsoleType.NES)
+        val consoleTag = if (isNes) "NES" else "GBA"
+        val type = if (rom.isZip) "ZIP ($consoleTag)" else consoleTag
         val sizeFormatted = String.format("%.1f MB", rom.fileSizeMb)
+
         holder.details.text = "$type • $sizeFormatted"
-        holder.code.text = if (rom.gameCode.isNotBlank()) rom.gameCode else "GBA"
+        holder.code.text = rom.gameCode
+
+        if (isNes) {
+            holder.code.setTextColor(Color.parseColor("#E53935")) // NES Red accent
+            holder.icon.text = "🕹️"
+        } else {
+            holder.code.setTextColor(Color.parseColor("#818CF8")) // GBA Indigo accent
+            holder.icon.text = "🎮"
+        }
 
         holder.itemView.setOnClickListener {
             onRomSelected(rom)

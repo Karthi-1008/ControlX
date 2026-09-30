@@ -31,6 +31,7 @@ android {
                 )
                 abiFilters("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
                 cFlags("-O3", "-fomit-frame-pointer", "-ffast-math")
+                cppFlags("-O3", "-fomit-frame-pointer", "-ffast-math", "-std=c++17")
             }
         }
     }

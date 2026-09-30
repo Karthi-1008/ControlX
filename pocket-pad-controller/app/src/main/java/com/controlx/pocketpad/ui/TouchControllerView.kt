@@ -6,14 +6,17 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
-import android.os.SystemClock
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
 import com.controlx.pocketpad.hid.GamepadHidDescriptor
 import kotlin.math.atan2
 import kotlin.math.hypot
-import kotlin.math.sqrt
+
+enum class GamepadMode {
+    GBA,
+    NES
+}
 
 class TouchControllerView @JvmOverloads constructor(
     context: Context,
@@ -28,6 +31,19 @@ class TouchControllerView @JvmOverloads constructor(
 
     var inputChangeListener: InputChangeListener? = null
     var isHapticsEnabled = false
+
+    var gamepadMode: GamepadMode = GamepadMode.GBA
+        set(value) {
+            field = value
+            pointerTargetMap.clear()
+            buttonMask = 0
+            hatState = GamepadHidDescriptor.HAT_CENTER
+            axisX = 0
+            axisY = 0
+            inputChangeListener?.onInputChanged(buttonMask, hatState, axisX, axisY)
+            requestLayout()
+            invalidate()
+        }
 
     // Button states
     private var buttonMask = 0
@@ -65,6 +81,31 @@ class TouchControllerView @JvmOverloads constructor(
         color = Color.parseColor("#BA68C8")
         style = Paint.Style.FILL
     }
+    private val paintNesButton = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#D32F2F")
+        style = Paint.Style.FILL
+    }
+    private val paintNesButtonPressed = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#FF5252")
+        style = Paint.Style.FILL
+    }
+    private val paintNesTurbo = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#991B1B")
+        style = Paint.Style.FILL
+    }
+    private val paintNesTurboPressed = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#DC2626")
+        style = Paint.Style.FILL
+    }
+    private val paintNesBand = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#12141A")
+        style = Paint.Style.FILL
+    }
+    private val paintNesRedStripe = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#B91C1C")
+        style = Paint.Style.STROKE
+        strokeWidth = 3f
+    }
     private val paintShoulder = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.parseColor("#282D3F")
         style = Paint.Style.FILL
@@ -87,6 +128,12 @@ class TouchControllerView @JvmOverloads constructor(
         textAlign = Paint.Align.CENTER
         isFakeBoldText = true
     }
+    private val paintSubText = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#94A3B8")
+        textSize = 20f
+        textAlign = Paint.Align.CENTER
+        isFakeBoldText = true
+    }
 
     // Touch bounds
     private var dpadCenterX = 0f
@@ -101,6 +148,12 @@ class TouchControllerView @JvmOverloads constructor(
     private var buttonBCenterY = 0f
     private var buttonBRadius = 0f
 
+    private var turboACenterX = 0f
+    private var turboACenterY = 0f
+    private var turboBCenterX = 0f
+    private var turboBCenterY = 0f
+    private var turboRadius = 0f
+
     private val rectL = RectF()
     private val rectR = RectF()
     private val rectSelect = RectF()
@@ -108,6 +161,7 @@ class TouchControllerView @JvmOverloads constructor(
 
     // Multi-touch tracking
     private val pointerTargetMap = HashMap<Int, Int>() // pointerId -> Target ID
+
     companion object {
         const val TARGET_NONE = 0
         const val TARGET_DPAD = 1
@@ -117,6 +171,8 @@ class TouchControllerView @JvmOverloads constructor(
         const val TARGET_BTN_R = 5
         const val TARGET_SELECT = 6
         const val TARGET_START = 7
+        const val TARGET_TURBO_A = 8
+        const val TARGET_TURBO_B = 9
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -124,39 +180,82 @@ class TouchControllerView @JvmOverloads constructor(
         val width = w.toFloat()
         val height = h.toFloat()
 
-        // L & R Shoulders at top corners
-        val shoulderWidth = width * 0.28f
-        val shoulderHeight = height * 0.16f
-        rectL.set(16f, 16f, 16f + shoulderWidth, 16f + shoulderHeight)
-        rectR.set(width - 16f - shoulderWidth, 16f, width - 16f, 16f + shoulderHeight)
+        if (gamepadMode == GamepadMode.GBA) {
+            // L & R Shoulders at top corners
+            val shoulderWidth = width * 0.28f
+            val shoulderHeight = height * 0.16f
+            rectL.set(16f, 16f, 16f + shoulderWidth, 16f + shoulderHeight)
+            rectR.set(width - 16f - shoulderWidth, 16f, width - 16f, 16f + shoulderHeight)
 
-        // D-Pad on lower left
-        dpadRadius = height * 0.28f
-        dpadCenterX = width * 0.20f
-        dpadCenterY = height * 0.62f
+            // D-Pad on lower left
+            dpadRadius = height * 0.28f
+            dpadCenterX = width * 0.20f
+            dpadCenterY = height * 0.62f
 
-        // Action Buttons on lower right (GBA angled layout: B lower left, A upper right)
-        buttonARadius = height * 0.14f
-        buttonBRadius = buttonARadius
-        buttonACenterX = width * 0.85f
-        buttonACenterY = height * 0.54f
+            // Action Buttons on lower right (GBA angled layout: B lower left, A upper right)
+            buttonARadius = height * 0.14f
+            buttonBRadius = buttonARadius
+            buttonACenterX = width * 0.85f
+            buttonACenterY = height * 0.54f
 
-        buttonBCenterX = width * 0.72f
-        buttonBCenterY = height * 0.68f
+            buttonBCenterX = width * 0.72f
+            buttonBCenterY = height * 0.68f
 
-        // Select and Start pill buttons in bottom center
-        val menuWidth = width * 0.10f
-        val menuHeight = height * 0.08f
-        val menuCenterY = height * 0.85f
-        val centerX = width * 0.5f
+            // Select and Start pill buttons in bottom center
+            val menuWidth = width * 0.10f
+            val menuHeight = height * 0.08f
+            val menuCenterY = height * 0.85f
+            val centerX = width * 0.5f
 
-        rectSelect.set(centerX - menuWidth - 20f, menuCenterY - menuHeight / 2, centerX - 20f, menuCenterY + menuHeight / 2)
-        rectStart.set(centerX + 20f, menuCenterY - menuHeight / 2, centerX + menuWidth + 20f, menuCenterY + menuHeight / 2)
+            rectSelect.set(centerX - menuWidth - 20f, menuCenterY - menuHeight / 2, centerX - 20f, menuCenterY + menuHeight / 2)
+            rectStart.set(centerX + 20f, menuCenterY - menuHeight / 2, centerX + menuWidth + 20f, menuCenterY + menuHeight / 2)
+        } else {
+            // NES Layout
+            // D-Pad on left
+            dpadRadius = height * 0.30f
+            dpadCenterX = width * 0.20f
+            dpadCenterY = height * 0.55f
+
+            // Action Buttons B & A (horizontal alignment)
+            buttonARadius = height * 0.13f
+            buttonBRadius = buttonARadius
+            buttonBCenterX = width * 0.72f
+            buttonBCenterY = height * 0.65f
+            buttonACenterX = width * 0.86f
+            buttonACenterY = height * 0.65f
+
+            // Turbo B & Turbo A buttons (above B & A)
+            turboRadius = height * 0.11f
+            turboBCenterX = width * 0.72f
+            turboBCenterY = height * 0.32f
+            turboACenterX = width * 0.86f
+            turboACenterY = height * 0.32f
+
+            // Select and Start horizontal pill buttons in center
+            val menuWidth = width * 0.11f
+            val menuHeight = height * 0.07f
+            val menuCenterY = height * 0.75f
+            val centerX = width * 0.48f
+
+            rectSelect.set(centerX - menuWidth - 15f, menuCenterY - menuHeight / 2, centerX - 15f, menuCenterY + menuHeight / 2)
+            rectStart.set(centerX + 15f, menuCenterY - menuHeight / 2, centerX + menuWidth + 15f, menuCenterY + menuHeight / 2)
+
+            rectL.setEmpty()
+            rectR.setEmpty()
+        }
     }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
+        if (gamepadMode == GamepadMode.GBA) {
+            drawGbaLayout(canvas)
+        } else {
+            drawNesLayout(canvas)
+        }
+    }
+
+    private fun drawGbaLayout(canvas: Canvas) {
         // Draw Shoulders L & R
         val lPressed = (buttonMask and GamepadHidDescriptor.BUTTON_L1) != 0
         canvas.drawRoundRect(rectL, 20f, 20f, if (lPressed) paintShoulderPressed else paintShoulder)
@@ -186,6 +285,52 @@ class TouchControllerView @JvmOverloads constructor(
         val startPressed = (buttonMask and GamepadHidDescriptor.BUTTON_START) != 0
         canvas.drawRoundRect(rectStart, 15f, 15f, if (startPressed) paintMenuBtnPressed else paintMenuBtn)
         canvas.drawText("START", rectStart.centerX(), rectStart.centerY() + 10f, paintText)
+    }
+
+    private fun drawNesLayout(canvas: Canvas) {
+        val width = width.toFloat()
+        val height = height.toFloat()
+
+        // Authentic NES decorative horizontal band behind action buttons
+        val bandTop = height * 0.18f
+        val bandBottom = height * 0.85f
+        val bandLeft = width * 0.62f
+        val bandRight = width - 24f
+        canvas.drawRoundRect(bandLeft, bandTop, bandRight, bandBottom, 24f, 24f, paintNesBand)
+        canvas.drawLine(bandLeft + 16f, bandTop + 14f, bandRight - 16f, bandTop + 14f, paintNesRedStripe)
+        canvas.drawLine(bandLeft + 16f, bandBottom - 14f, bandRight - 16f, bandBottom - 14f, paintNesRedStripe)
+
+        // Draw D-Pad
+        drawDpad(canvas)
+
+        // Draw Action Buttons B & A (horizontal row)
+        val bPressed = (buttonMask and GamepadHidDescriptor.BUTTON_B) != 0
+        canvas.drawCircle(buttonBCenterX, buttonBCenterY, buttonBRadius, if (bPressed) paintNesButtonPressed else paintNesButton)
+        canvas.drawText("B", buttonBCenterX, buttonBCenterY + 11f, paintText)
+
+        val aPressed = (buttonMask and GamepadHidDescriptor.BUTTON_A) != 0
+        canvas.drawCircle(buttonACenterX, buttonACenterY, buttonARadius, if (aPressed) paintNesButtonPressed else paintNesButton)
+        canvas.drawText("A", buttonACenterX, buttonACenterY + 11f, paintText)
+
+        // Draw Turbo Buttons TB & TA
+        val tbPressed = (buttonMask and GamepadHidDescriptor.BUTTON_Y) != 0
+        canvas.drawCircle(turboBCenterX, turboBCenterY, turboRadius, if (tbPressed) paintNesTurboPressed else paintNesTurbo)
+        canvas.drawText("TB", turboBCenterX, turboBCenterY + 10f, paintText)
+        canvas.drawText("TURBO B", turboBCenterX, turboBCenterY - turboRadius - 8f, paintSubText)
+
+        val taPressed = (buttonMask and GamepadHidDescriptor.BUTTON_X) != 0
+        canvas.drawCircle(turboACenterX, turboACenterY, turboRadius, if (taPressed) paintNesTurboPressed else paintNesTurbo)
+        canvas.drawText("TA", turboACenterX, turboACenterY + 10f, paintText)
+        canvas.drawText("TURBO A", turboACenterX, turboACenterY - turboRadius - 8f, paintSubText)
+
+        // Draw Select & Start buttons
+        val selectPressed = (buttonMask and GamepadHidDescriptor.BUTTON_SELECT) != 0
+        canvas.drawRoundRect(rectSelect, 15f, 15f, if (selectPressed) paintMenuBtnPressed else paintMenuBtn)
+        canvas.drawText("SELECT", rectSelect.centerX(), rectSelect.centerY() + 8f, paintSubText)
+
+        val startPressed = (buttonMask and GamepadHidDescriptor.BUTTON_START) != 0
+        canvas.drawRoundRect(rectStart, 15f, 15f, if (startPressed) paintMenuBtnPressed else paintMenuBtn)
+        canvas.drawText("START", rectStart.centerX(), rectStart.centerY() + 8f, paintSubText)
     }
 
     private fun drawDpad(canvas: Canvas) {
@@ -260,7 +405,6 @@ class TouchControllerView @JvmOverloads constructor(
                 val px = event.getX(i)
                 val py = event.getY(i)
 
-                // Dynamic tracking: allows sliding from center of D-pad or between buttons
                 val target = getTargetAt(px, py)
                 pointerTargetMap[pid] = target
 
@@ -271,7 +415,6 @@ class TouchControllerView @JvmOverloads constructor(
                         val dist = hypot(dx.toDouble(), dy.toDouble()).toFloat()
                         if (dist > dpadRadius * 0.15f) {
                             val angle = (Math.toDegrees(atan2(dy.toDouble(), dx.toDouble())) + 360.0) % 360.0
-                            // 8-way directional sector calculation
                             newHat = when {
                                 angle >= 337.5 || angle < 22.5 -> GamepadHidDescriptor.HAT_RIGHT
                                 angle in 22.5..67.5 -> GamepadHidDescriptor.HAT_DOWN_RIGHT
@@ -284,13 +427,14 @@ class TouchControllerView @JvmOverloads constructor(
                                 else -> GamepadHidDescriptor.HAT_CENTER
                             }
 
-                            // Analog fallback axis
                             newX = (dx / dpadRadius * 127f).coerceIn(-127f, 127f).toInt().toByte()
                             newY = (dy / dpadRadius * 127f).coerceIn(-127f, 127f).toInt().toByte()
                         }
                     }
                     TARGET_BTN_A -> newButtons = newButtons or GamepadHidDescriptor.BUTTON_A
                     TARGET_BTN_B -> newButtons = newButtons or GamepadHidDescriptor.BUTTON_B
+                    TARGET_TURBO_A -> newButtons = newButtons or GamepadHidDescriptor.BUTTON_X
+                    TARGET_TURBO_B -> newButtons = newButtons or GamepadHidDescriptor.BUTTON_Y
                     TARGET_BTN_L -> newButtons = newButtons or GamepadHidDescriptor.BUTTON_L1
                     TARGET_BTN_R -> newButtons = newButtons or GamepadHidDescriptor.BUTTON_R1
                     TARGET_SELECT -> newButtons = newButtons or GamepadHidDescriptor.BUTTON_SELECT
@@ -321,16 +465,34 @@ class TouchControllerView @JvmOverloads constructor(
     }
 
     private fun getTargetAt(x: Float, y: Float): Int {
-        // Shoulder L & R
-        if (rectL.contains(x, y)) return TARGET_BTN_L
-        if (rectR.contains(x, y)) return TARGET_BTN_R
+        if (gamepadMode == GamepadMode.GBA) {
+            // Shoulder L & R
+            if (rectL.contains(x, y)) return TARGET_BTN_L
+            if (rectR.contains(x, y)) return TARGET_BTN_R
 
-        // Action Buttons
-        if (hypot((x - buttonACenterX).toDouble(), (y - buttonACenterY).toDouble()) <= buttonARadius * 1.35f) {
-            return TARGET_BTN_A
-        }
-        if (hypot((x - buttonBCenterX).toDouble(), (y - buttonBCenterY).toDouble()) <= buttonBRadius * 1.35f) {
-            return TARGET_BTN_B
+            // Action Buttons A & B
+            if (hypot((x - buttonACenterX).toDouble(), (y - buttonACenterY).toDouble()) <= buttonARadius * 1.35f) {
+                return TARGET_BTN_A
+            }
+            if (hypot((x - buttonBCenterX).toDouble(), (y - buttonBCenterY).toDouble()) <= buttonBRadius * 1.35f) {
+                return TARGET_BTN_B
+            }
+        } else {
+            // NES Action Buttons B & A
+            if (hypot((x - buttonACenterX).toDouble(), (y - buttonACenterY).toDouble()) <= buttonARadius * 1.35f) {
+                return TARGET_BTN_A
+            }
+            if (hypot((x - buttonBCenterX).toDouble(), (y - buttonBCenterY).toDouble()) <= buttonBRadius * 1.35f) {
+                return TARGET_BTN_B
+            }
+
+            // NES Turbo Buttons TA & TB
+            if (hypot((x - turboACenterX).toDouble(), (y - turboACenterY).toDouble()) <= turboRadius * 1.35f) {
+                return TARGET_TURBO_A
+            }
+            if (hypot((x - turboBCenterX).toDouble(), (y - turboBCenterY).toDouble()) <= turboRadius * 1.35f) {
+                return TARGET_TURBO_B
+            }
         }
 
         // Select & Start
